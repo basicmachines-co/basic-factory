@@ -1,5 +1,6 @@
 """Git operations for basic-factory."""
 from pathlib import Path
+import subprocess
 from typing import Protocol
 from dataclasses import dataclass
 import pygit2
@@ -13,36 +14,28 @@ class GitConfig:
     author_email: str = "bot@basicmachines.co"
 
 
-class GitOperations(Protocol):
-    """Protocol defining required git operations."""
-    def create_branch(self, name: str) -> None:
-        """Create and checkout new branch."""
-        ...
-
-    def add_file(self, path: str, content: str) -> None:
-        """Add or update file with content."""
-        ...
-
-    def commit_changes(self, message: str) -> str:
-        """Commit staged changes and return commit hash."""
-        ...
-
-
 class Git:
-    """Git operations implementation using pygit2."""
+    """Git operations implementation using pygit2 and git CLI."""
 
     def __init__(self, config: GitConfig):
         self.config = config
         self.repo = pygit2.Repository(str(config.repo_path))
 
+    def _run_git(self, *args: str) -> str:
+        """Run git command in repo directory."""
+        result = subprocess.run(
+            ["git", *args],
+            cwd=self.config.repo_path,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip()
+
     def create_branch(self, name: str) -> None:
         """Create and checkout a new branch from current HEAD."""
-        # Get current HEAD commit
-        head = self.repo.head.target
-        ref = self.repo.create_branch(name, self.repo.get(head))
-
-        # Checkout the new branch
-        self.repo.checkout(ref)
+        # Create and checkout branch using git commands
+        self._run_git("checkout", "-b", name)
 
     def add_file(self, path: str, content: str) -> None:
         """Add or update a file with the given content."""
@@ -53,35 +46,16 @@ class Git:
         # Write file content
         full_path.write_text(content)
 
-        # Stage the file
-        index = self.repo.index
-        index.add(path)
-        index.write()
+        # Stage the file using git command
+        self._run_git("add", path)
 
     def commit_changes(self, message: str) -> str:
         """Commit staged changes and return the commit hash."""
-        # Get current user signature
-        signature = pygit2.Signature(
-            self.config.author_name,
-            self.config.author_email
-        )
+        # Create commit using git command
+        self._run_git("commit", "-m", message)
 
-        # Write the index tree
-        index = self.repo.index
-        tree = index.write_tree()
-
-        # Create the commit
-        parent = [self.repo.head.target]
-        commit_hash = self.repo.create_commit(
-            'HEAD',
-            signature,
-            signature,
-            message,
-            tree,
-            parent
-        )
-
-        return str(commit_hash)
+        # Get and return commit hash
+        return self._run_git("rev-parse", "HEAD")
 
 
 def create_hello_world(git: Git) -> None:
