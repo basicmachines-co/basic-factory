@@ -14,9 +14,9 @@ authors = [
 dependencies = [
     "pygit2>=1.13.1", # For git operations
     "pygithub>=2.1.1", # For GitHub API
-    "click>=8.1.7", # For CLI
     "pydantic>=2.5.2",
     # For data validation
+    "typer[all]>=0.13.1",
 ]
 
 [project.optional-dependencies]
@@ -25,6 +25,9 @@ dev = [
     "pytest-cov>=4.1.0",
     "ruff>=0.1.6",
 ]
+
+[project.scripts]
+basic-factory = "basic_factory.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/basic_factory"]
@@ -38,6 +41,7 @@ dev-dependencies = [
     "pytest>=8.3.3",
     "pytest-cov>=6.0.0",
     "ruff>=0.8.0",
+    "basic-factory",
 ]
 
 [tool.uv.sources]
