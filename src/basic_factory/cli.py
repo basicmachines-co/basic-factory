@@ -11,6 +11,7 @@ app = typer.Typer(
     no_args_is_help=True
 )
 
+
 @app.command()
 def hello_world(
         repo_path: Path = typer.Option(
@@ -33,6 +34,12 @@ def hello_world(
             "basic-factory",
             help="GitHub repository name"
         ),
+        stay_on_branch: bool = typer.Option(
+            False,
+            "--stay-on-branch",
+            "-s",
+            help="Stay on the created feature branch"
+        ),
 ):
     """Create hello world example with PR."""
     # Set up git operations
@@ -43,29 +50,39 @@ def hello_world(
     )
     git = Git(git_config)
 
-    typer.echo("Creating hello world example...")
+    print("Creating hello world example...")
 
-    # Create and commit changes
-    from basic_factory.git import create_hello_world
-    create_hello_world(git)
+    try:
+        # Create, commit, and push changes
+        from basic_factory.git import create_hello_world
+        original_branch, new_branch = create_hello_world(git, stay_on_branch)
 
-    typer.echo("✅ Created and committed changes")
+        print("✅ Created, committed, and pushed changes")
 
-    # Create PR if token provided
-    if token:
-        github_config = GitHubConfig(
-            token=token,
-            repo_owner=owner,
-            repo_name=repo
-        )
-        github = GitHubOps(github_config)
+        if stay_on_branch:
+            print(f"[yellow]ℹ️  Staying on branch: {new_branch}[/yellow]")
+        else:
+            print(f"[green]↩️  Returned to branch: {original_branch}[/green]")
 
-        typer.echo("Creating pull request...")
-        from basic_factory.github import create_hello_world_pr
-        pr_url = create_hello_world_pr(github)
-        typer.echo(f"✅ Created PR: {pr_url}")
-    else:
-        typer.echo("⚠️  No GitHub token provided - skipping PR creation")
+        # Create PR if token provided
+        if token:
+            github_config = GitHubConfig(
+                token=token,
+                repo_owner=owner,
+                repo_name=repo
+            )
+            github = GitHubOps(github_config)
+
+            print("Creating pull request...")
+            from basic_factory.github import create_hello_world_pr
+            pr_url = create_hello_world_pr(github)
+            print(f"✅ Created PR: {pr_url}")
+        else:
+            print("[yellow]⚠️  No GitHub token provided - skipping PR creation[/yellow]")
+
+    except Exception as e:
+        print(f"[red]❌ Error: {str(e)}[/red]", err=True)
+        raise typer.Exit(1)
 
 
 @app.command()
