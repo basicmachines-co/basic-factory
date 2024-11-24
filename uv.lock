@@ -48,7 +48,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "basic-factory", editable = "." },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
     { name = "ruff", specifier = ">=0.8.0" },

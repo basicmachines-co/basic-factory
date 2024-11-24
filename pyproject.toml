@@ -34,7 +34,6 @@ line-length = 88
 
 [tool.uv]
 dev-dependencies = [
-    "basic-factory",
     "pytest>=8.3.3",
     "pytest-cov>=6.0.0",
     "ruff>=0.8.0",
@@ -42,3 +41,13 @@ dev-dependencies = [
 
 [tool.uv.sources]
 basic-factory = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+python_files = [
+    "test_*.py",
+]
+addopts = "-ra -q"
+

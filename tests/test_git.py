@@ -1,15 +1,35 @@
 """Tests for git operations."""
-import pygit2
+from pathlib import Path
 import pytest
+import pygit2
 from basic_factory.git import Git, GitConfig
 
 
 @pytest.fixture
 def git_repo(tmp_path):
-    """Create a temporary git repository."""
+    """Create a temporary git repository with initial commit."""
+    # Create and init repo
     repo_path = tmp_path / "test_repo"
     repo_path.mkdir()
-    pygit2.init_repository(str(repo_path))
+    repo = pygit2.init_repository(str(repo_path))
+
+    # Create initial commit so we have a HEAD reference
+    signature = pygit2.Signature("Test User", "test@example.com")
+
+    # Create empty tree for initial commit
+    tree = repo.TreeBuilder().write()
+
+    # Create initial commit
+    repo.create_commit(
+        'refs/heads/main',  # This creates the main branch
+        signature,
+        signature,
+        "Initial commit",
+        tree,
+        []  # No parent commits
+    )
+
+    # Create and return Git instance
     config = GitConfig(repo_path)
     return Git(config)
 
