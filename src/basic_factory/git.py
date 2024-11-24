@@ -18,6 +18,9 @@ class Git:
 
     def __init__(self, config: GitConfig):
         self.config = config
+        # Configure git user for this repo
+        self._run_git("config", "user.name", config.author_name)
+        self._run_git("config", "user.email", config.author_email)
 
     def _run_git(self, *args: str) -> str:
         """Run git command in repo directory."""
