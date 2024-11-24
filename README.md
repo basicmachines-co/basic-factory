@@ -46,3 +46,27 @@ source .venv/bin/activate
 # Run tests
 pytest
 ```
+
+```mermaid
+flowchart TB
+    subgraph Claude["Claude Interface"]
+        Tools["Custom Tools"]
+        Context["Project Context"]
+    end
+
+    subgraph Integration["Integration Layer"]
+        GitOps["Git Operations"]
+        GithubAPI["GitHub API"]
+        FileOps["File Operations"]
+    end
+
+    subgraph Actions["GitHub Actions"]
+        Workflows["Custom Workflows"]
+        Tests["Automated Tests"]
+        Validation["Code Validation"]
+    end
+
+    Claude -->|"Function Calls"| Integration
+    Integration -->|"Execute"| Actions
+    Actions -->|"Results"| Claude
+```
