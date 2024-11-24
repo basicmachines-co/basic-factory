@@ -12,10 +12,11 @@ authors = [
     { name = "Basic Machines" },
 ]
 dependencies = [
-    "pygit2>=1.13.1",  # For git operations
+    "pygit2>=1.13.1", # For git operations
     "pygithub>=2.1.1", # For GitHub API
-    "click>=8.1.7",    # For CLI
-    "pydantic>=2.5.2", # For data validation
+    "click>=8.1.7", # For CLI
+    "pydantic>=2.5.2",
+    # For data validation
 ]
 
 [project.optional-dependencies]
