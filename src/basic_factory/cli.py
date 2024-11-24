@@ -81,7 +81,7 @@ def hello_world(
             print("[yellow]⚠️  No GitHub token provided - skipping PR creation[/yellow]")
 
     except Exception as e:
-        print(f"[red]❌ Error: {str(e)}[/red]", err=True)
+        print(f"[red]❌ Error: {str(e)}[/red]")
         raise typer.Exit(1)
 
 
