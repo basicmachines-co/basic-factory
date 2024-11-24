@@ -8,8 +8,14 @@ from basic_factory.git import Git, GitConfig
 @pytest.fixture
 def git_repo(tmp_path):
     """Create a temporary git repository with initial commit."""
-    # Create and init repo
+    # Create source and remote repo paths
     repo_path = tmp_path / "test_repo"
+    remote_path = tmp_path / "remote_repo"
+
+    # Initialize remote repo first (bare repository)
+    remote_repo = pygit2.init_repository(str(remote_path), bare=True)
+
+    # Create and init source repo
     repo_path.mkdir()
     repo = pygit2.init_repository(str(repo_path))
 
@@ -29,6 +35,9 @@ def git_repo(tmp_path):
         []  # No parent commits
     )
 
+    # Add remote
+    repo.remotes.create("origin", str(remote_path))
+
     # Create and return Git instance
     config = GitConfig(repo_path)
     return Git(config)
@@ -39,10 +48,11 @@ def test_create_hello_world(git_repo):
     from basic_factory.git import create_hello_world
 
     # Create hello world files
-    create_hello_world(git_repo)
+    create_hello_world(git_repo, stay_on_branch=True)  # Stay on the new branch
 
     # Verify branch was created
-    assert git_repo.repo.head.shorthand == "feature/hello-world"
+    current_branch = git_repo.get_current_branch()
+    assert current_branch == "feature/hello-world"
 
     # Verify files exist
     hello_path = git_repo.config.repo_path / "src/basic_factory/hello.py"

@@ -56,3 +56,6 @@ python_files = [
 ]
 addopts = "-ra -q"
 
+markers = [
+    "integration: marks tests as integration tests"
+]

@@ -3,6 +3,7 @@ import os
 import pytest
 from basic_factory.github import GitHubConfig, GitHubOps
 
+pytestmark = pytest.mark.integration
 
 @pytest.fixture
 def github_ops():

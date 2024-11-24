@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from basic_factory.git import Git, GitConfig
 
+pytestmark = pytest.mark.integration
 
 @pytest.fixture
 def working_repo():
