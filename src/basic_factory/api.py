@@ -1,5 +1,5 @@
 import sys
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Annotated
 from pydantic import BaseModel
 from pathlib import Path
 from basic_factory.git import Git, GitConfig
@@ -184,7 +184,7 @@ class GitTools:
             )
 
 # FastAPI endpoints
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 
 
 # Configure loguru
@@ -201,25 +201,48 @@ logger.add(
     level="INFO"
 )
 
+# First, create a dependency function that creates our GitTools
+async def get_git_tools() -> GitTools:
+    """Dependency that provides GitTools instance"""
+    return GitTools(".")  # We can make this path configurable later
+
+# Use this type alias for cleaner annotations
+GitToolsDep = Annotated[GitTools, Depends(get_git_tools)]
+
 app = FastAPI()
 git_tools = GitTools()
 
 @app.post("/tools/git/create-branch")
-async def create_branch_endpoint(request: CreateBranchRequest) -> GitResponse:
+async def create_branch_endpoint(
+    request: CreateBranchRequest,
+    git_tools: GitToolsDep
+) -> GitResponse:
     return await git_tools.create_branch(request)
 
 @app.post("/tools/git/commit-files")
-async def commit_files_endpoint(request: CommitFilesRequest) -> GitResponse:
+async def commit_files_endpoint(
+    request: CommitFilesRequest,
+    git_tools: GitToolsDep
+) -> GitResponse:
     return await git_tools.commit_files(request)
 
 @app.post("/tools/git/push-branch")
-async def push_branch_endpoint(request: PushBranchRequest) -> GitResponse:
+async def push_branch_endpoint(
+    request: PushBranchRequest,
+    git_tools: GitToolsDep
+) -> GitResponse:
     return await git_tools.push_branch(request)
 
 @app.post("/tools/git/create-pr")
-async def create_pr_endpoint(request: CreatePRRequest) -> GitResponse:
+async def create_pr_endpoint(
+    request: CreatePRRequest,
+    git_tools: GitToolsDep
+) -> GitResponse:
     return await git_tools.create_pull_request(request)
 
 @app.post("/tools/git/workflow-status")
-async def workflow_status_endpoint(request: WorkflowStatusRequest) -> GitResponse:
+async def workflow_status_endpoint(
+    request: WorkflowStatusRequest,
+    git_tools: GitToolsDep
+) -> GitResponse:
     return await git_tools.get_workflow_status(request)
