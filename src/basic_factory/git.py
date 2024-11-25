@@ -1,115 +1,124 @@
-"""Git operations for basic-factory."""
-from pathlib import Path
-import subprocess
-from typing import Protocol
 from dataclasses import dataclass
-
+from pathlib import Path
+import asyncio
+from typing import Optional, List, Union
+from loguru import logger
 
 @dataclass
 class GitConfig:
-    """Configuration for git operations."""
     repo_path: Path
-    author_name: str = "Basic Factory"
-    author_email: str = "bot@basicmachines.co"
+    git_path: str = "git"
 
+class GitError(Exception):
+    """Custom exception for git command failures"""
+    def __init__(self, message: str, cmd: List[str], stderr: str):
+        self.cmd = cmd
+        self.stderr = stderr
+        super().__init__(f"{message}\nCommand: {' '.join(cmd)}\nError: {stderr}")
 
 class Git:
-    """Git operations implementation using git CLI."""
-
     def __init__(self, config: GitConfig):
         self.config = config
-        # Configure git user for this repo
-        self._run_git("config", "user.name", config.author_name)
-        self._run_git("config", "user.email", config.author_email)
+        self.repo_path = config.repo_path
+        logger.info(f"Initialized Git wrapper for repo: {self.repo_path}")
 
-    def _run_git(self, *args: str) -> str:
-        """Run git command in repo directory."""
-        result = subprocess.run(
-            ["git", *args],
-            cwd=self.config.repo_path,
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout.strip()
-
-    def get_current_branch(self) -> str:
-        """Get name of current branch."""
-        return self._run_git("branch", "--show-current")
-
-    def create_branch(self, name: str) -> None:
-        """Create and checkout a new branch from current HEAD."""
-        self._run_git("checkout", "-b", name)
-
-    def checkout_branch(self, name: str) -> None:
-        """Checkout existing branch."""
-        self._run_git("checkout", name)
-
-    def add_file(self, path: str, content: str) -> None:
-        """Add or update a file with the given content."""
-        full_path = self.config.repo_path / path
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-        full_path.write_text(content)
-        self._run_git("add", path)
-
-    def commit_changes(self, message: str) -> str:
-        """Commit staged changes and return the commit hash."""
-        self._run_git("commit", "-m", message)
-        return self._run_git("rev-parse", "HEAD")
-
-    def push_branch(self, branch_name: str, remote: str = "origin") -> None:
-        """Push branch to remote."""
+    async def _run_command(self, args: List[str], check: bool = True) -> str:
+        """
+        Run git command asynchronously using asyncio.create_subprocess_exec
+        
+        Args:
+            args: List of command arguments
+            check: Whether to raise exception on non-zero exit code
+            
+        Returns:
+            Command output as string
+        """
+        cmd = [self.config.git_path, *args]
+        cmd_str = " ".join(cmd)
+        
+        logger.info(f"Running git command: {cmd_str}")
+        logger.info(f"Working directory: {self.repo_path}")
+        
         try:
-            self._run_git("push", "-u", remote, branch_name)
-        except subprocess.CalledProcessError as e:
-            if "remote rejected" in e.stderr:
-                raise RuntimeError(f"Failed to push to remote: {e.stderr}")
+            # Create subprocess
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                cwd=str(self.repo_path),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            # Wait for completion and get output
+            stdout, stderr = await process.communicate()
+            stdout_str = stdout.decode().strip()
+            stderr_str = stderr.decode().strip()
+            
+            if stdout_str:
+                logger.info(f"Command output:\n{stdout_str}")
+            if stderr_str:
+                logger.info(f"Command stderr:\n{stderr_str}")
+                
+            if check and process.returncode != 0:
+                logger.error(f"Git command failed with exit code {process.returncode}")
+                logger.error(f"Command: {cmd_str}")
+                logger.error(f"Error output: {stderr_str}")
+                raise GitError(
+                    "Git command failed",
+                    cmd,
+                    stderr_str
+                )
+            
+            logger.info(f"Git command completed successfully")
+            return stdout_str
+            
+        except Exception as e:
+            logger.exception(f"Error executing git command: {cmd_str}")
             raise
 
+    async def pull(self, remote: str = "origin", branch: Optional[str] = None) -> str:
+        """Pull changes from remote repository"""
+        logger.info(f"Pulling from {remote}" + (f" branch {branch}" if branch else ""))
+        args = ["pull", remote]
+        if branch:
+            args.append(branch)
+        return await self._run_command(args)
 
-def create_hello_world(git: Git, stay_on_branch: bool = False) -> tuple[str, str]:
-    """Create hello world example files.
+    async def checkout(self, branch: str) -> str:
+        """Checkout a branch"""
+        logger.info(f"Checking out branch: {branch}")
+        return await self._run_command(["checkout", branch])
 
-    Args:
-        git: Git instance to use for operations
-        stay_on_branch: If True, remain on created branch
+    async def create_branch(self, branch: str) -> str:
+        """Create a new branch"""
+        logger.info(f"Creating new branch: {branch}")
+        return await self._run_command(["checkout", "-b", branch])
 
-    Returns:
-        Tuple of (original_branch, new_branch)
-    """
-    original_branch = git.get_current_branch()
-    new_branch = "feature/hello-world"
+    async def add(self, path: Union[str, Path]) -> str:
+        """Add file(s) to git staging"""
+        logger.info(f"Adding path to git: {path}")
+        return await self._run_command(["add", str(path)])
 
-    # Create and switch to feature branch
-    git.create_branch(new_branch)
+    async def commit(self, message: str) -> str:
+        """Create a commit with the given message"""
+        logger.info(f"Creating commit with message: {message}")
+        return await self._run_command(["commit", "-m", message])
 
-    # Add hello.py
-    hello_content = '''"""Hello world module."""
+    async def push(self, branch: str, remote: str = "origin") -> str:
+        """Push branch to remote"""
+        logger.info(f"Pushing branch {branch} to remote {remote}")
+        return await self._run_command(["push", "-u", remote, branch])
 
-def hello_world() -> str:
-    """Return a friendly greeting."""
-    return "Hello from Basic Factory!"
-'''
-    git.add_file("src/basic_factory/hello.py", hello_content)
+    async def get_current_branch(self) -> str:
+        """Get name of current branch"""
+        logger.info("Getting current branch name")
+        return await self._run_command(["rev-parse", "--abbrev-ref", "HEAD"])
 
-    # Add test_hello.py
-    test_content = '''"""Test hello world module."""
-from basic_factory.hello import hello_world
+    async def get_current_commit_sha(self) -> str:
+        """Get SHA of current commit"""
+        logger.info("Getting current commit SHA")
+        return await self._run_command(["rev-parse", "HEAD"])
 
-def test_hello_world():
-    """Test hello_world function."""
-    assert hello_world() == "Hello from Basic Factory!"
-'''
-    git.add_file("tests/test_hello.py", test_content)
-
-    # Commit changes
-    git.commit_changes("Add hello world function with tests")
-
-    # Push branch to remote
-    git.push_branch(new_branch)
-
-    # Return to original branch unless asked to stay
-    if not stay_on_branch:
-        git.checkout_branch(original_branch)
-
-    return original_branch, new_branch
+    async def status(self) -> str:
+        """Get git status output"""
+        logger.info("Getting git status")
+        return await self._run_command(["status"])
