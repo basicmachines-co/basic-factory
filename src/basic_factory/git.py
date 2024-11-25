@@ -1,3 +1,4 @@
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 import asyncio
@@ -21,6 +22,37 @@ class Git:
         self.config = config
         self.repo_path = config.repo_path
         logger.info(f"Initialized Git wrapper for repo: {self.repo_path}")
+
+    def _ensure_git_config(self):
+        """Ensure git is configured with user info for commits"""
+        try:
+            # Try to get current git config
+            subprocess.run(
+                ["git", "config", "user.name"],
+                cwd=str(self.repo_path),
+                check=True,
+                capture_output=True
+            )
+            subprocess.run(
+                ["git", "config", "user.email"],
+                cwd=str(self.repo_path),
+                check=True,
+                capture_output=True
+            )
+        except subprocess.CalledProcessError:
+            # If not configured, set default values
+            subprocess.run(
+                ["git", "config", "--local", "user.name", "Basic Factory Bot"],
+                cwd=str(self.repo_path),
+                check=True
+            )
+            subprocess.run(
+                ["git", "config", "--local", "user.email", "bot@basicmachines.co"],
+                cwd=str(self.repo_path),
+                check=True
+            )
+
+
 
     async def _run_command(self, args: List[str], check: bool = True) -> str:
         """
@@ -100,7 +132,7 @@ class Git:
 
     async def commit(self, message: str) -> str:
         """Create a commit with the given message"""
-        logger.info(f"Creating commit with message: {message}")
+        logger.info(f"Creating commit with message: '{message}'")
         return await self._run_command(["commit", "-m", message])
 
     async def push(self, branch: str, remote: str = "origin") -> str:
