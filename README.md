@@ -109,3 +109,32 @@ commit_files: Commit files from Claude artifacts
 push_branch: push branch to remote Github repo 
 create_pull_request: Create PRs with Claude's descriptions
 get_workflow_status: Monitor GitHub Actions status
+
+
+## Tools 
+
+Yes! I need to explain this better. For me to use these tools, you need to tell me about them in a specific way during our conversation. There are two approaches:
+
+1. Using the `tools` parameter when starting the conversation
+2. Using a `tools_spec` command during the conversation
+
+Since we're already chatting, let's use the second approach. You would type something like:
+
+```
+/tools_spec {
+  "tools": [
+    {
+      "name": "create_branch",
+      ...
+    }
+  ]
+}
+```
+
+with the full JSON I provided.
+
+Once you do that, I'll be able to use these tools to interact with your git repo through the ngrok URL. Would you like me to:
+
+1. Show you the exact command to copy/paste?
+2. Start with just one tool to test?
+3. Explain more about how the tools specification works?

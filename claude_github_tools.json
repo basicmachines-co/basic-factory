@@ -1,0 +1,93 @@
+{
+  "tools": [
+    {
+      "name": "create_branch",
+      "description": "Create a new git branch from base branch",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "branch_name": {
+            "type": "string",
+            "description": "Name of the branch to create"
+          },
+          "base_branch": {
+            "type": "string",
+            "description": "Base branch to create from",
+            "default": "main"
+          }
+        },
+        "required": ["branch_name"]
+      },
+      "url": "https://fe36-70-113-88-160.ngrok-free.app/tools/git/create-branch"
+    },
+    {
+      "name": "commit_files",
+      "description": "Add and commit files to a branch",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "branch_name": {
+            "type": "string",
+            "description": "Branch to commit to"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "File path relative to repo root"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "File content"
+                }
+              },
+              "required": ["path", "content"]
+            }
+          },
+          "commit_message": {
+            "type": "string",
+            "description": "Git commit message"
+          },
+          "push": {
+            "type": "boolean",
+            "description": "Whether to push the commit",
+            "default": true
+          }
+        },
+        "required": ["branch_name", "files", "commit_message"]
+      },
+      "url": "https://fe36-70-113-88-160.ngrok-free.app/tools/git/commit-files"
+    },
+    {
+      "name": "create_pull_request",
+      "description": "Create a pull request on GitHub",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "PR title"
+          },
+          "description": {
+            "type": "string",
+            "description": "PR description"
+          },
+          "branch_name": {
+            "type": "string",
+            "description": "Branch containing changes"
+          },
+          "base_branch": {
+            "type": "string",
+            "description": "Branch to merge into",
+            "default": "main"
+          }
+        },
+        "required": ["title", "description", "branch_name"]
+      },
+      "url": "https://fe36-70-113-88-160.ngrok-free.app/tools/git/create-pr"
+    }
+  ]
+}
