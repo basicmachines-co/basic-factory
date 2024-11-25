@@ -148,43 +148,54 @@ async def test_gittools_integration():
         await git._run_command(["config", "--local", "user.name", "Test User"])
         await git._run_command(["config", "--local", "user.email", "test@example.com"])
 
-        # Create initial commit so we have a HEAD reference
+        # Create initial commit on main branch
         await git._run_command(["commit", "--allow-empty", "-m", "Initial commit"])
 
-        # Create the feature branch
-        await git._run_command(["checkout", "-b", "feature/test"])
+        # Remember the original branch (should be main/master)
+        original_branch = await git._run_command(["rev-parse", "--abbrev-ref", "HEAD"])
 
-        # Now create our GitTools instance
-        tools = GitTools(str(tmp_path))
+        try:
+            # Create and switch to the feature branch
+            await git._run_command(["checkout", "-b", "feature/test"])
 
-        # Test creating and committing files
-        request = CommitFilesRequest(
-            branch_name="feature/test",
-            files=[FileContent(path="test.py", content="print('hello')")],
-            commit_message="Test commit",
-            push=False  # Don't push in test
-        )
+            # Now create our GitTools instance
+            tools = GitTools(str(tmp_path))
 
-        response = await tools.commit_files(request)
-        assert response.success is True
+            # Test creating and committing files
+            request = CommitFilesRequest(
+                branch_name="feature/test",
+                files=[FileContent(path="test.py", content="print('hello')")],
+                commit_message="Test commit",
+                push=False  # Don't push in test
+            )
 
-        # Verify file was written
-        test_file = tmp_path / "test.py"
-        assert test_file.exists()
-        assert test_file.read_text() == "print('hello')"
+            response = await tools.commit_files(request)
+            assert response.success is True
 
-        # Verify git status
-        status = await git._run_command(["status"])
-        assert "nothing to commit" in status.lower()  # Should be clean after commit
+            # Verify file was written
+            test_file = tmp_path / "test.py"
+            assert test_file.exists()
+            assert test_file.read_text() == "print('hello')"
 
-        # Verify we're on the right branch
-        branch = await git._run_command(["rev-parse", "--abbrev-ref", "HEAD"])
-        assert branch == "feature/test"
+            # Verify git status
+            status = await git._run_command(["status"])
+            assert "nothing to commit" in status.lower()  # Should be clean after commit
+
+            # Verify we're on the right branch
+            branch = await git._run_command(["rev-parse", "--abbrev-ref", "HEAD"])
+            assert branch == "feature/test"
+
+        finally:
+            # Switch back to original branch
+            await git._run_command(["checkout", original_branch])
+            # Clean up feature branch
+            await git._run_command(["branch", "-D", "feature/test"])
 
     finally:
-        # Cleanup
+        # Directory cleanup
         import shutil
         shutil.rmtree(tmp_path)
+
 
 # Direct Tests of GitTools Methods
 @pytest.mark.asyncio
