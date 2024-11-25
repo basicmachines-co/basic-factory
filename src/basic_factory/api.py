@@ -1,4 +1,5 @@
 import sys
+from datetime import datetime
 from typing import Dict, List, Optional, Union, Annotated
 from pydantic import BaseModel
 from pathlib import Path
@@ -246,3 +247,8 @@ async def workflow_status_endpoint(
     git_tools: GitToolsDep
 ) -> GitResponse:
     return await git_tools.get_workflow_status(request)
+
+@app.get("/health")
+async def health_check():
+    print("Health check received!")
+    return {"status": "ok", "timestamp": str(datetime.now()), "id": "unique_test_123"}
