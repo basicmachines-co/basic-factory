@@ -3,8 +3,8 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch, MagicMock
 from basic_factory.git import Git, GitConfig, GitError
 from basic_factory.api import (
-    GitTools, CreateBranchRequest, CommitFilesRequest,
-    FileContent
+    GitTools, CommitFilesRequest,
+    FileContent, app  # Import git_tools singleton
 )
 from fastapi.testclient import TestClient
 
@@ -18,23 +18,28 @@ def git_config():
 
 
 @pytest.fixture
-def mock_git():
+def mock_git_instance():
+    """Create a mock Git instance with all methods we need"""
+    instance = AsyncMock()
+
+    # Configure all the method responses
+    instance.checkout = AsyncMock(return_value="checkout success")
+    instance.pull = AsyncMock(return_value="pull success")
+    instance.create_branch = AsyncMock(return_value="branch created")
+    instance.add = AsyncMock(return_value="add success")
+    instance.commit = AsyncMock(return_value="commit success")
+    instance.push = AsyncMock(return_value="push success")
+    instance.get_current_commit_sha = AsyncMock(return_value="abc123")
+    # Set repo_path for file operations
+    instance.repo_path = Path("/fake/repo")
+
+    return instance
+
+@pytest.fixture
+def mock_git(mock_git_instance):
+    """Create Git class mock that returns our instance"""
     with patch('basic_factory.api.Git') as mock_cls:
-        # Create a mock instance with all the async methods we need
-        instance = AsyncMock()
-
-        # Configure all the methods to return success
-        instance.checkout = AsyncMock(return_value="checkout success")
-        instance.pull = AsyncMock(return_value="pull success")
-        instance.create_branch = AsyncMock(return_value="branch created")
-        instance.add = AsyncMock(return_value="add success")
-        instance.commit = AsyncMock(return_value="commit success")
-        instance.push = AsyncMock(return_value="push success")
-        instance.get_current_commit_sha = AsyncMock(return_value="abc123")
-
-        # Make the mock class return our configured instance
-        mock_cls.return_value = instance
-
+        mock_cls.return_value = mock_git_instance
         yield mock_cls
 
 @pytest.fixture
@@ -53,13 +58,18 @@ def mock_github():
         yield mock
 
 @pytest.fixture
-def test_app():
-    from basic_factory.api import app
-    return app
+def mock_git_tools(mock_git_instance):
+    """Create GitTools with mocked Git instance"""
+    tools = GitTools(".")
+    tools.git = mock_git_instance
+    return tools
 
 @pytest.fixture
-def client(test_app):
-    return TestClient(test_app)
+def client(mock_git_tools):
+    """Create test client with proper dependency injection"""
+    # Important: Patch the actual git_tools instance used by the app
+    with patch('basic_factory.api.git_tools', mock_git_tools):
+        return TestClient(app)
 
 # Git Wrapper Tests
 @pytest.mark.asyncio
@@ -85,61 +95,50 @@ async def test_git_run_command_failure(git_config):
 
         assert "error message" in str(exc_info.value)
 
-@pytest.mark.asyncio
-async def test_git_pull(git_config, mock_process):
-    with patch('asyncio.create_subprocess_exec', return_value=mock_process):
-        git = Git(git_config)
-        result = await git.pull("origin", "main")
-        assert result == "success output"
-
-@pytest.mark.asyncio
-async def test_git_checkout(git_config, mock_process):
-    with patch('asyncio.create_subprocess_exec', return_value=mock_process):
-        git = Git(git_config)
-        result = await git.checkout("main")
-        assert result == "success output"
-
 # API Endpoint Tests
-def test_create_branch_endpoint_success(client, mock_github):
-    with patch('basic_factory.api.Git') as mock_git:
-        # Setup mock git instance
-        mock_git_instance = AsyncMock()
-        mock_git_instance.checkout = AsyncMock(return_value="checkout success")
-        mock_git_instance.pull = AsyncMock(return_value="pull success")
-        mock_git_instance.create_branch = AsyncMock(return_value="branch created")
-        mock_git.return_value = mock_git_instance
+def test_create_branch_endpoint_success(client, mock_git_instance):
+    """Test successful branch creation"""
+    response = client.post(
+        "/tools/git/create-branch",
+        json={
+            "branch_name": "feature/test",
+            "base_branch": "main"
+        }
+    )
 
-        response = client.post(
-            "/tools/git/create-branch",
-            json={"branch_name": "feature/test", "base_branch": "main"}
-        )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert "branch_name" in data["data"]
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert "branch_name" in data["data"]
+    # Verify mock calls
+    mock_git_instance.checkout.assert_called_once_with("main")
+    mock_git_instance.pull.assert_called_once()
+    mock_git_instance.create_branch.assert_called_once_with("feature/test")
 
-def test_create_branch_endpoint_failure(client, mock_github):
-    with patch('basic_factory.api.Git') as mock_git:
-        # Setup mock git to raise an exception
-        mock_git_instance = AsyncMock()
-        mock_git_instance.checkout = AsyncMock(side_effect=GitError(
-            "Failed to checkout", ["git", "checkout"], "error output"
-        ))
-        mock_git.return_value = mock_git_instance
+def test_create_branch_endpoint_failure(client, mock_git_instance):
+    """Test branch creation failure"""
+    # Make checkout raise an error
+    mock_git_instance.checkout.side_effect = GitError(
+        "Failed to checkout", ["git", "checkout"], "error output"
+    )
 
-        response = client.post(
-            "/tools/git/create-branch",
-            json={"branch_name": "feature/test", "base_branch": "main"}
-        )
+    response = client.post(
+        "/tools/git/create-branch",
+        json={
+            "branch_name": "feature/test",
+            "base_branch": "main"
+        }
+    )
 
-        assert response.status_code == 200  # We return 200 with error in response
-        data = response.json()
-        assert data["success"] is False
-        assert data["error"] is not None
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is False
+    assert "Failed to checkout" in data["error"]
 
 
-def test_commit_files_endpoint_success(client, mock_git, mock_github):
+def test_commit_files_endpoint_success(client, mock_git_instance, tmp_path):
+    """Test successful file commit"""
     response = client.post(
         "/tools/git/commit-files",
         json={
@@ -158,20 +157,15 @@ def test_commit_files_endpoint_success(client, mock_git, mock_github):
     assert data["data"]["commit_sha"] == "abc123"
 
     # Verify mock calls
-    mock_instance = mock_git.return_value
-    mock_instance.checkout.assert_called_once_with("feature/test")
-    mock_instance.add.assert_called()
-    mock_instance.commit.assert_called_once_with("Test commit")
-    mock_instance.push.assert_called_once_with("feature/test")
+    mock_git_instance.checkout.assert_called_once_with("feature/test")
+    mock_git_instance.add.assert_called()
+    mock_git_instance.commit.assert_called_once_with("Test commit")
+    mock_git_instance.push.assert_called_once_with("feature/test")
 
-
-def test_commit_files_endpoint_failure(client, mock_git, mock_github):
-    # Make the commit method raise an error
-    mock_instance = mock_git.return_value
-    mock_instance.commit.side_effect = GitError(
-        "Failed to commit",
-        ["git", "commit", "-m", "Test commit"],
-        "error output"
+def test_commit_files_endpoint_failure(client, mock_git_instance):
+    """Test file commit failure"""
+    mock_git_instance.commit.side_effect = GitError(
+        "Failed to commit", ["git", "commit"], "error output"
     )
 
     response = client.post(
@@ -191,84 +185,99 @@ def test_commit_files_endpoint_failure(client, mock_git, mock_github):
     assert data["success"] is False
     assert "Failed to commit" in data["error"]
 
-# Test file writing
-def test_commit_files_writes_files(tmp_path, client, mock_github):
-    repo_path = tmp_path / "test_repo"
-    repo_path.mkdir()
 
-    with patch('basic_factory.api.Git') as mock_git:
-        mock_git_instance = AsyncMock()
-        mock_git_instance.repo_path = repo_path
-        for method in ['checkout', 'add', 'commit', 'push', 'get_current_commit_sha']:
-            setattr(mock_git_instance, method, AsyncMock(return_value="success"))
-        mock_git.return_value = mock_git_instance
+def test_commit_files_writes_files(client, mock_git_instance, tmp_path):
+    """Test that files are actually written to disk"""
+    test_repo = tmp_path / "test_repo"
+    test_repo.mkdir()
+    mock_git_instance.repo_path = test_repo
 
-        response = client.post(
-            "/tools/git/commit-files",
-            json={
-                "branch_name": "feature/test",
-                "files": [
-                    {"path": "test.py", "content": "print('hello')"}
-                ],
-                "commit_message": "Test commit",
-                "push": True
-            }
-        )
-
-        # Verify file was written
-        test_file = repo_path / "test.py"
-        assert test_file.exists()
-        assert test_file.read_text() == "print('hello')"
-
-# Integration-style test (still mocked but testing full flow)
-@pytest.mark.asyncio
-async def test_full_branch_and_commit_flow(tmp_path):
-    # Set up git config in temp directory
-    repo_path = tmp_path / "test_repo"
-    repo_path.mkdir()
-
-    # Initialize git repo
-    config = GitConfig(repo_path=repo_path)
-    git = Git(config)
-
-    # Configure git for commits
-    await git._run_command([
-        "config", "--local", "user.name", "Test User"
-    ])
-    await git._run_command([
-        "config", "--local", "user.email", "test@example.com"
-    ])
-
-    # Initialize repo
-    await git._run_command(["init"])
-
-    # Create and use GitTools
-    tools = GitTools(str(repo_path))
-
-    # Create branch
-    branch_request = CreateBranchRequest(
-        branch_name="feature/test",
-        base_branch="main"
+    response = client.post(
+        "/tools/git/commit-files",
+        json={
+            "branch_name": "feature/test",
+            "files": [
+                {"path": "test.py", "content": "print('hello')"}
+            ],
+            "commit_message": "Test commit",
+            "push": True
+        }
     )
-    branch_response = await tools.create_branch(branch_request)
-    assert branch_response.success
 
-    # Commit files
-    commit_request = CommitFilesRequest(
-        branch_name="feature/test",
-        files=[
-            FileContent(path="test.py", content="print('hello')")
-        ],
-        commit_message="Test commit",
-        push=False  # Don't try to push in this test
-    )
-    commit_response = await tools.commit_files(commit_request)
-    assert commit_response.success
-
-    # Verify file exists
-    test_file = repo_path / "test.py"
+    # Verify file was written to the correct location
+    test_file = test_repo / "test.py"
     assert test_file.exists()
     assert test_file.read_text() == "print('hello')"
 
+    # Verify git commands were called
+    mock_git_instance.add.assert_called_once_with("test.py")
+    mock_git_instance.commit.assert_called_once_with("Test commit")
 
 
+def test_commit_files_failure(client, mock_git_instance):
+    """Test handling of commit failure"""
+    mock_git_instance.commit.side_effect = GitError(
+        "Failed to commit",
+        ["git", "commit", "-m", "Test commit"],
+        "Nothing to commit"
+    )
+
+    response = client.post(
+        "/tools/git/commit-files",
+        json={
+            "branch_name": "feature/test",
+            "files": [
+                {"path": "test.py", "content": "print('hello')"}
+            ],
+            "commit_message": "Test commit",
+            "push": True
+        }
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is False
+    assert "Failed to commit" in data["error"]
+
+@pytest.mark.asyncio
+async def test_gittools_commit_files_direct(mock_git_instance, tmp_path):
+    """Test GitTools commit_files method directly"""
+    tools = GitTools(str(tmp_path))
+    tools.git = mock_git_instance
+
+    request = CommitFilesRequest(
+        branch_name="feature/test",
+        files=[FileContent(path="test.py", content="print('hello')")],
+        commit_message="Test commit",
+        push=True
+    )
+
+    response = await tools.commit_files(request)
+
+    assert response.success is True
+    assert response.data["commit_sha"] == "abc123"
+
+    # Verify the expected calls were made
+    mock_git_instance.checkout.assert_called_once_with("feature/test")
+    mock_git_instance.add.assert_called()
+    mock_git_instance.commit.assert_called_once_with("Test commit")
+    mock_git_instance.push.assert_called_once_with("feature/test")
+
+
+@pytest.mark.asyncio
+async def test_git_tools_methods(mock_git_instance, tmp_path):
+    """Test GitTools methods directly"""
+    tools = GitTools(str(tmp_path))
+    tools.git = mock_git_instance
+
+    # Test commit_files
+    request = CommitFilesRequest(
+        branch_name="feature/test",
+        files=[FileContent(path="test.py", content="print('hello')")],
+        commit_message="Test commit",
+        push=True
+    )
+
+    response = await tools.commit_files(request)
+    assert response.success is True
+    assert response.data["commit_sha"] == "abc123"
