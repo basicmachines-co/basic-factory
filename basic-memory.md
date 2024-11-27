@@ -1,7 +1,21 @@
 # basic-memory: Project Documentation
 
 ## Overview
-basic-memory is a knowledge graph system designed for AI-human collaboration, built on SQLite and inspired by Zettelkasten methodology and the Model Context Protocol (MCP). It enables selective context loading for focused AI conversations while maintaining project isolation.
+
+basic-memory represents a fundamental shift in how humans and AI collaborate on projects. It combines the time-tested Zettelkasten note-taking method with modern knowledge graph technology and Anthropic's Model Context Protocol (MCP) to create something uniquely powerful: a system that both humans and AI can naturally work with, each in their own way.
+
+Built on SQLite for simplicity and portability, basic-memory solves a critical challenge in AI-human collaboration: maintaining consistent, rich context across conversations while keeping information organized and accessible. It's like having a shared brain that both AI and humans can read and write to naturally.
+
+Key innovations:
+- **AI-Native Knowledge Structure**: Uses entities and relations that match how LLMs think
+- **Human-Friendly Interface**: Everything is readable/writable as markdown text
+- **Project Isolation**: Load only relevant context for focused discussions
+- **Local-First**: Your knowledge stays in SQLite databases you control
+- **Tool-Driven**: Leverages MCP for seamless AI interaction with your knowledge
+
+Think of it as a bridge between human note-taking and AI thinking patterns. Whether you're documenting code, managing projects, or building complex systems, basic-memory helps maintain continuous, meaningful collaboration between human and AI partners.
+
+Best of all, it follows the Basic Machines philosophy: simple, powerful tools that respect user agency and avoid vendor lock-in. No cloud dependencies, no black boxes - just a straightforward system for building shared understanding between humans and AI.
 
 ## Core Concepts
 
