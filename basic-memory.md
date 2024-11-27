@@ -391,4 +391,148 @@ basic-memory visualize architecture
 basic-memory visualize flow
 ```
 
-The diagrams help make the knowledge structure more tangible and are great for documentation and understanding relationships!
+# basic-memory-webui
+
+## Overview
+basic-memory-webui is a notebook-style interface for the basic-memory knowledge graph system, enabling interactive human-AI collaboration in knowledge work. It combines the power of Zettelkasten note-taking, knowledge graphs, and AI assistance into a unique local-first tool for thought.
+
+### Why This is Cool and Interesting
+This project represents a novel approach to human-AI collaboration by:
+1. **True Two-Way Knowledge Flow**: Unlike traditional AI chat interfaces, both human and AI can read and write to the same knowledge graph, creating genuine collaborative intelligence
+2. **Local-First Knowledge**: Your knowledge base lives in SQLite, not in some cloud service. It's yours to control, backup, and modify
+3. **Notebook-Style Interface**: Familiar to developers but revolutionized with AI collaboration - imagine Jupyter Notebooks where cells can be knowledge graphs, markdown, or AI conversations
+4. **MCP Integration**: Uses Anthropic's Model Context Protocol to give AI genuine understanding of context, not just simulated responses
+5. **Basic Machines Stack**: Built on our proven stack (basic-foundation, basic-components), showing how simple tools can combine into powerful systems
+
+## Architecture
+
+```mermaid
+graph TD
+    subgraph "Frontend"
+        NB[Notebook Interface]
+        VIZ[Visualizations]
+        ED[Editors]
+    end
+
+    subgraph "Backend"
+        API[FastAPI]
+        DB[(SQLite)]
+        MCP[MCP Server]
+    end
+
+    NB -->|HTMX| API
+    VIZ -->|Updates| API
+    ED -->|Changes| API
+    API -->|Query| DB
+    API -->|Context| MCP
+    MCP -->|Updates| DB
+```
+
+## Core Features
+1. **Notebook Interface**
+   - Markdown cells
+   - Knowledge graph visualizations
+   - AI chat context
+   - Interactive editing
+
+2. **Knowledge Management**
+   - Entity/relation viewing
+   - Graph visualization
+   - Tag organization
+   - Full-text search
+
+3. **AI Integration**
+   - Context loading
+   - Knowledge updates
+   - Interactive chat to read/update notes
+   - Memory persistence
+
+4. **Data Management**
+   - Local SQLite storage
+   - Text export/import
+   - Version control friendly
+   - Backup support
+
+## Technical Stack
+- **Backend**: FastAPI, SQLite, MCP Tools
+- **Frontend**: JinjaX, HTMX, Alpine.js, TailwindCSS
+- **Components**: basic-components library
+- **Infrastructure**: basic-foundation patterns
+
+## Implementation Strategy
+
+### Phase 1: Core Interface
+- Basic notebook interface
+- Markdown editing
+- Simple knowledge graph viewing
+- Basic MCP integration
+
+### Phase 2: Rich Features
+- Interactive graph visualization
+- Advanced editing tools
+- Real-time updates
+- Enhanced AI collaboration
+
+### Phase 3: Advanced Features
+- Custom visualizations
+- Extended search
+- Knowledge analytics
+- Export formats
+
+## Development Approach
+1. Start simple with core notebook interface
+2. Add features iteratively
+3. Focus on user experience
+4. Maintain Basic Machines philosophy throughout
+
+## Integration Points
+1. **basic-memory**
+   - Core knowledge graph
+   - MCP server
+   - Data storage
+
+2. **basic-components**
+   - UI components
+   - Interactive elements
+   - Styling system
+
+3. **basic-foundation**
+   - API patterns
+   - Authentication (if needed)
+   - Testing approach
+
+## Future Possibilities
+1. Multiple knowledge bases
+2. Collaborative editing
+3. Custom visualization plugins
+4. Enhanced AI capabilities
+5. Advanced graph analytics
+
+## Future Enhancements
+
+## Security & Privacy Features
+For shared or hosted deployments, we plan to add:
+
+1. **End-to-End Encryption**
+   - Zero-knowledge encryption of knowledge base
+   - Client-side key management
+   - Secure sharing options
+   - Support for team knowledge bases while maintaining privacy
+
+2. **Access Control**
+   - Personal encryption keys
+   - Optional shared keys
+   - Fine-grained permissions
+
+These features will maintain our core principles:
+- User owns their data
+- Privacy by design
+- No vendor lock-in
+- Local-first philosophy
+```
+
+For now, we can focus on the core functionality:
+1. Notebook interface
+2. Knowledge graph
+3. MCP integration
+4. Local SQLite storage
