@@ -1,50 +1,27 @@
-# Basic Factory
+# MCP Filesystem Tools - Working Notes
 
-AI-assisted software development workflow tools.
+## Tool Capabilities
+1. **Directory Operations**
+   - `create_directory`: Creates new directories, including nested paths
+   - `list_directory`: Shows files and directories with [FILE] and [DIR] prefixes
+   
+2. **File Operations**
+   - `write_file`: Creates or overwrites files with content
+   - `read_file`: Retrieves file contents
+   - `move_file`: Relocates files between directories
+   - `get_file_info`: Provides metadata (size, dates, permissions)
+   - `search_files`: Finds files matching patterns (note: case sensitivity varies)
 
-## Overview
+3. **Git Tool Limitations**
+   - Missing `git push` functionality
+   - Local operations only (add, commit, branch)
+   - No remote repository management
+   - Branch operations require extra verification
 
-Basic Factory provides tools for integrating AI assistants (like Claude) into software development workflows via GitHub. It enables AI assistants to:
-
-- Create and manage branches
-- Commit changes
-- Create pull requests
-- Run and monitor GitHub Actions
-- Participate in code review
-
-## Github
-For the GitHub token, you'll need to:
-
-Go to GitHub Settings → Developer Settings → Personal Access Tokens
-https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
-
-
-Create a new token with 'repo' scope
-We can use this for both direct API calls and for GitHub Actions
-
-## Installation
-
-```bash
-uv add basic-factory
-```
-
-## Development
-
-Set up development environment:
-
-```bash
-# Create virtual environment
-uv venv
-uv sync 
-
-# Install project in editable mode with dev dependencies
-uv add --dev --editable .
-uv add --dev pytest pytest-cov ruff
-
-source .venv/bin/activate
-
-# Run tests
-pytest
-```
-
-
+4. **GitHub Tool Limitations**
+   - No PR comment functionality
+   - No issue comments
+   - `push_files` requires existing remote branch
+   - PR creation returns merge_commit_sha errors
+   - Limited repository management options
+   - No direct comment or review features
