@@ -202,3 +202,8 @@ tail -n 20 -f ~/Library/Logs/Claude/mcp*.log
    - `get_file_info`: Provides metadata (size, dates, permissions)
    - `search_files`: Finds files matching patterns (note: case sensitivity varies)
 
+3. **Git**
+   - the git tool is missing a `git push` 
+
+4. **GitHub**
+   - the `push_files` command assumes a remote branch exists?
