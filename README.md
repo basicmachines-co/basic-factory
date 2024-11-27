@@ -12,15 +12,32 @@ Basic Factory provides tools for integrating AI assistants (like Claude) into so
 - Run and monitor GitHub Actions
 - Participate in code review
 
-## Github
-For the GitHub token, you'll need to:
+## Model Context Protocol (MCP)
 
-Go to GitHub Settings → Developer Settings → Personal Access Tokens
-https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+Basic Factory uses MCP tools to enable direct integration between Claude and development tools:
 
+- Git operations for branch and commit management
+- GitHub integration for PRs and collaboration
+- Memory graph for maintaining context
+- Filesystem tools for direct file manipulation
 
-Create a new token with 'repo' scope
-We can use this for both direct API calls and for GitHub Actions
+### Configuration
+
+Set up MCP servers and tools:
+
+```bash
+# Git operations
+npx @modelcontextprotocol/inspector uvx mcp-server-git --repository /path/to/repo
+
+# GitHub integration
+npx @modelcontextprotocol/inspector npx @modelcontextprotocol/server-github
+
+# Memory & context
+npx @modelcontextprotocol/inspector uvx mcp-server-memory
+
+# File operations
+npx @modelcontextprotocol/inspector uvx mcp-server-filesystem
+```
 
 ## Installation
 
@@ -46,5 +63,3 @@ source .venv/bin/activate
 # Run tests
 pytest
 ```
-
-
