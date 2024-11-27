@@ -535,3 +535,7 @@ For now, we can focus on the core functionality:
 2. Knowledge graph
 3. MCP integration
 4. Local SQLite storage
+
+## Language server protocol
+
+https://microsoft.github.io/language-server-protocol/
