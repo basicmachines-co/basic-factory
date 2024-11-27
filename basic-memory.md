@@ -529,7 +529,6 @@ These features will maintain our core principles:
 - Privacy by design
 - No vendor lock-in
 - Local-first philosophy
-```
 
 For now, we can focus on the core functionality:
 1. Notebook interface
