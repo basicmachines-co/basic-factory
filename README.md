@@ -47,6 +47,15 @@ source .venv/bin/activate
 pytest
 ```
 
+## Model Context Protocol (MCP)
+
+Basic Factory uses MCP tools to enable direct integration between Claude and development tools:
+
+- Git operations for branch and commit management
+- GitHub integration for PRs and collaboration
+- Memory graph for maintaining context
+- Filesystem tools for direct file manipulation
+
 
 # MCP quickstart
 https://modelcontextprotocol.io/quickstart
